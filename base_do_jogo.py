@@ -1,12 +1,19 @@
+"""Fase Maldita: jogo de plataforma com armadilhas, feito com PyGame.
+Para rodar: python base_do_jogo.py
+A pasta "sons" tem de ficar junto deste arquivo.
+Parte deste código foi gerada com IA generativa: a explicação está no README.
+"""
 import os
 import pygame
 pygame.init()
+# tamanho da tela, tamanho dos blocos e números do movimento
 LARGURA = 960
 ALTURA = 560
 TAM = 40
-GRAVIDADE = 0.6
+GRAVIDADE = 0.60
 FORCA_PULO = 10
-VELOCIDADE = 4.45
+VELOCIDADE = 4.5
+# cores: (vermelho, verde, azul)
 LARANJA = (232, 151, 66)
 PRETO = (22, 21, 29)
 CINZA = (45, 43, 56)
@@ -14,11 +21,15 @@ VERMELHO = (226, 59, 75)
 VERDE = (56, 192, 122)
 VERDE_ESCURO = (14, 61, 39)
 BRANCO = (255, 255, 255)
+# janela, relógio e fontes
 tela = pygame.display.set_mode((LARGURA, ALTURA), pygame.FULLSCREEN | pygame.SCALED)
 pygame.display.set_caption("Fase Maldita")
 relogio = pygame.time.Clock()
 fonte = pygame.font.Font(None, 36)
 fonte_grande = pygame.font.Font(None, 96)
+# mapas das 4 fases: # bloco, . vazio, P jogador, D porta, ^ espinho
+# armadilhas: X chão falso, I bloco invisível, F bloco que cai, H espinho escondido,
+# E porta falsa, T teleporte, C inversor, d lugar para onde a porta foge
 mapa1 = [
     "########################",
     "#......................#",
@@ -85,32 +96,41 @@ mapa4 = [
 ]
 mapas = [mapa1, mapa2, mapa3, mapa4]
 class quadrado:
+    """O quadrado que o jogador controla."""
     def __init__(self, nome, x, y):
+        """Cria o quadrado na posição (x, y), parado e fora do chão."""
         self.nome = nome
         self.x = x
-        self.y = y  # faltava esta linha na versão antiga
+        self.y = y
         self.velocidade_y = 0
-        self.no_chao = False  # o loop avisa quando tem bloco embaixo
+        self.no_chao = False
     def mover(self, deslocamento_x, deslocamento_y):
+        """Muda a posição do quadrado para os lados e para cima ou para baixo."""
         self.x += deslocamento_x
         self.y += deslocamento_y
     def pular(self):
-        if self.no_chao:  # só pula se estiver em cima de um bloco
+        """Faz o quadrado pular, só se ele estiver em cima de um bloco."""
+        if self.no_chao:
             self.velocidade_y = -FORCA_PULO
 def desenhar_bloco(rect):
+    """Desenha um bloco preto com uma faixa cinza em cima."""
     pygame.draw.rect(tela, PRETO, rect)
     pygame.draw.rect(tela, CINZA, (rect.x, rect.y, rect.width, 4))
 def desenhar_porta(rect):
+    """Desenha uma porta verde com moldura e maçaneta."""
     moldura = (rect.x - 3, rect.y - 3, rect.width + 6, rect.height + 6)
     pygame.draw.rect(tela, VERDE_ESCURO, moldura)
     pygame.draw.rect(tela, VERDE, rect)
     pygame.draw.circle(tela, VERDE_ESCURO, (rect.right - 5, rect.centery), 2)
 def desenhar_espinho(rect):
+    """Desenha um espinho, que é um triângulo vermelho."""
     pygame.draw.polygon(tela, VERMELHO, [rect.bottomleft, rect.midtop, rect.bottomright])
 def escrever(texto, qual_fonte, y, cor):
+    """Escreve um texto no meio da tela, na altura y."""
     imagem = qual_fonte.render(texto, True, cor)
     x = (LARGURA - imagem.get_width()) // 2
     tela.blit(imagem, (x, y))
+# sons: só tocam se a pasta "sons" existir e o computador tiver som
 pasta = os.path.dirname(os.path.abspath(__file__))
 tem_som = False
 if os.path.exists(pasta + "/sons") and pygame.mixer.get_init():
@@ -124,331 +144,24 @@ if os.path.exists(pasta + "/sons") and pygame.mixer.get_init():
     pygame.mixer.music.load(pasta + "/sons/musica.wav")
     pygame.mixer.music.set_volume(0.4)
     pygame.mixer.music.play(-1)
-estado = "menu"
-comecar_fase = False
-rodando = True
-while rodando:
-    relogio.tick(60)
-    for evento in pygame.event.get():
-        if evento.type == pygame.QUIT:
-            rodando = False
-        if evento.type == pygame.KEYDOWN:
-            if evento.key == pygame.K_ESCAPE:  # ESC fecha o jogo
-                rodando = False
-            if estado == "menu":
-                if evento.key == pygame.K_RETURN:
-                    fase = 0
-                    estado = "jogando"
-                    comecar_fase = True
-            elif estado == "jogando":
-                if evento.key == pygame.K_SPACE or evento.key == pygame.K_w or evento.key == pygame.K_UP:
-                    if posicao_quadrado.no_chao and tem_som:
-                        som_pulo.play()
-                    posicao_quadrado.pular()
-    if comecar_fase:
-        comecar_fase = False
-        blocos = []
-        espinhos = []
-        falsos = []
-        invisiveis = []
-        revelados = []
-        caem = []
-        caindo = []
-        escondidos = []
-        portas_falsas = []
-        teleportes = []
-        inversores = []
-        invertido = False
-        porta_foge = False
-        porta_fugindo = False
-        mapa = mapas[fase]
-        for linha in range(len(mapa)):
-            for coluna in range(len(mapa[linha])):
-                letra = mapa[linha][coluna]
-                x = coluna * TAM
-                y = linha * TAM
-                if letra == "#" or letra == "X" or letra == "I":  # X e I: bloco normal por enquanto
-                    blocos.append(pygame.Rect(x, y, TAM, TAM))
-                    if letra == "X":
-                        falsos.append(pygame.Rect(x, y, TAM, TAM))
-                    if letra == "I":
-                        invisiveis.append(pygame.Rect(x, y, TAM, TAM))
-                elif letra == "^":
-                    espinhos.append(pygame.Rect(x, y + 20, TAM, 20))
-                elif letra == "D":
-                    porta = pygame.Rect(x + 8, y, 24, TAM)
-                elif letra == "P":
-                    posicao_quadrado = quadrado("preto", x, y)  # nasce onde está o P
-                    inicio_x = x
-                    inicio_y = y
-                elif letra == "F":
-                    caem.append(pygame.Rect(x, y, TAM, TAM))
-                elif letra == "H":
-                    escondidos.append(pygame.Rect(x, y, TAM, TAM))
-                elif letra == "E":
-                    portas_falsas.append(pygame.Rect(x + 8, y, 24, TAM))
-                elif letra == "T":
-                    teleportes.append(pygame.Rect(x, y + 20, TAM, 20))
-                elif letra == "C":
-                    inversores.append(pygame.Rect(x, y + 20, TAM, 20))
-                elif letra == "d":
-                    porta_foge = True
-                    destino_x = x + 8
-    if estado == "jogando":
-        teclas = pygame.key.get_pressed()
-        velocidade_x = 0
-        if teclas[pygame.K_d] or teclas[pygame.K_RIGHT]:
-            velocidade_x = VELOCIDADE
-        if teclas[pygame.K_a] or teclas[pygame.K_LEFT]:
-            velocidade_x = -VELOCIDADE
-        if invertido:
-            velocidade_x = -velocidade_x
-        posicao_quadrado.mover(velocidade_x, 0)  # primeiro anda para os lados
-        caixa = pygame.Rect(posicao_quadrado.x, posicao_quadrado.y, TAM, TAM)
-        for bloco in blocos:
-            if caixa.colliderect(bloco):
-                if velocidade_x > 0:
-                    posicao_quadrado.x = bloco.left - TAM  # bateu na parede da direita
-                if velocidade_x < 0:
-                    posicao_quadrado.x = bloco.right  # bateu na parede da esquerda
-                caixa.x = posicao_quadrado.x
-        posicao_quadrado.velocidade_y += GRAVIDADE  # a gravidade puxa para baixo
-        posicao_quadrado.mover(0, int(posicao_quadrado.velocidade_y))  # depois sobe ou desce
-        caixa.y = posicao_quadrado.y
-        for bloco in blocos:
-            if caixa.colliderect(bloco):
-                if posicao_quadrado.velocidade_y > 0:
-                    posicao_quadrado.y = bloco.top - TAM  # caiu em cima do bloco
-                else:
-                    posicao_quadrado.y = bloco.bottom  # bateu a cabeça no bloco
-                posicao_quadrado.velocidade_y = 0
-                caixa.y = posicao_quadrado.y
-        pes = caixa.move(0, 1)  # cópia do quadrado 1 pixel abaixo
-        posicao_quadrado.no_chao = False
-        for bloco in blocos:
-            if pes.colliderect(bloco):  # tem bloco embaixo dos pés
-                posicao_quadrado.no_chao = True
-        for falso in falsos:
-            gatilho = pygame.Rect(falso.x, falso.y - 2, TAM, 2)
-            if caixa.colliderect(gatilho) and falso in blocos:
-                blocos.remove(falso)
-        for invisivel in invisiveis:
-            gatilho = pygame.Rect(invisivel.x - 1, invisivel.y - 1, TAM + 2, TAM + 2)
-            if caixa.colliderect(gatilho) and invisivel not in revelados:
-                revelados.append(invisivel)
-        for cai in caem:
-            gatilho = pygame.Rect(cai.x - TAM, cai.bottom, 3 * TAM, ALTURA)
-            if caixa.colliderect(gatilho) and cai not in caindo:
-                caindo.append(cai)
-        for cai in caindo:
-            if cai.y < ALTURA:
-                cai.y += 8
-            if caixa.colliderect(cai):
-                comecar_fase = True
-        for escondido in escondidos:
-            gatilho = pygame.Rect(escondido.x - 2 * TAM, escondido.y, 5 * TAM, TAM)
-            espinho_novo = pygame.Rect(escondido.x, escondido.y + 20, TAM, 20)
-            if caixa.colliderect(gatilho) and espinho_novo not in espinhos:
-                espinhos.append(espinho_novo)
-        for porta_falsa in portas_falsas:
-            if caixa.colliderect(porta_falsa):
-                comecar_fase = True
-        for teleporte in teleportes:
-            if caixa.colliderect(teleporte):
-                posicao_quadrado.x = inicio_x
-                posicao_quadrado.y = inicio_y
-                posicao_quadrado.velocidade_y = 0
-                caixa.x = inicio_x
-                caixa.y = inicio_y
-        for inversor in inversores:
-            if caixa.colliderect(inversor):
-                invertido = True
-        if porta_foge:
-            if porta.x - posicao_quadrado.x < 100:
-                porta_fugindo = True
-            if porta_fugindo and porta.x < destino_x:
-                porta.x += 6
-                if porta.x > destino_x:
-                    porta.x = destino_x
-        for espinho in espinhos:
-            if caixa.colliderect(espinho):  # morreu: recomeça a fase
-                comecar_fase = True
-        if posicao_quadrado.y > ALTURA:  # caiu para fora da tela: recomeça a fase
-            comecar_fase = True
-        if comecar_fase and tem_som:
-            som_morte.play()
-        if caixa.colliderect(porta):  # chegou na porta: próxima fase
-            if tem_som:
-                som_porta.play()
-            fase += 1
-            if fase < len(mapas):
-                comecar_fase = True
-            else:
-                estado = "menu"  # acabaram as fases: volta para o menu
-    if estado == "menu":
-        tela.fill(PRETO)
-        escrever("FASE MALDITA", fonte_grande, 60, LARANJA)
-        escrever("Chegue na porta verde... se ela deixar.", fonte, 160, BRANCO)
-        escrever("Aperte ENTER para começar", fonte, 260, LARANJA)
-    elif estado == "jogando":
-        tela.fill(LARANJA)
-        for bloco in blocos:
-            desenhar_bloco(bloco)
-        for espinho in espinhos:
-            desenhar_espinho(espinho)
-        desenhar_porta(porta)
-        for invisivel in invisiveis:
-            if invisivel not in revelados:
-                pygame.draw.rect(tela, LARANJA, invisivel)
-                if abs(posicao_quadrado.x - invisivel.x) < 68 and abs(posicao_quadrado.y - invisivel.y) < 96:
-                    pygame.draw.rect(tela, BRANCO, (invisivel.x + 2, invisivel.y + 2, TAM - 4, TAM - 4), 2)
-        for cai in caem:
-            desenhar_bloco(cai)
-        for porta_falsa in portas_falsas:
-            desenhar_porta(porta_falsa)
-        pygame.draw.rect(tela, PRETO, (posicao_quadrado.x, posicao_quadrado.y, TAM, TAM))
-        if invertido:
-            pygame.draw.rect(tela, VERMELHO, (posicao_quadrado.x + 10, posicao_quadrado.y + 10, 20, 20))
-    pygame.display.flip()
-pygame.quit()
-import os
-import pygame
-pygame.init()
-LARGURA = 960
-ALTURA = 560
-TAM = 40
-GRAVIDADE = 0.5
-FORCA_PULO = 10
-VELOCIDADE = 3
-LARANJA = (232, 151, 66)
-PRETO = (22, 21, 29)
-CINZA = (45, 43, 56)
-VERMELHO = (226, 59, 75)
-VERDE = (56, 192, 122)
-VERDE_ESCURO = (14, 61, 39)
-BRANCO = (255, 255, 255)
-tela = pygame.display.set_mode((LARGURA, ALTURA), pygame.FULLSCREEN | pygame.SCALED)
-pygame.display.set_caption("Fase Maldita")
-relogio = pygame.time.Clock()
-fonte = pygame.font.Font(None, 36)
-fonte_grande = pygame.font.Font(None, 96)
-mapa1 = [
-    "########################",
-    "#......................#",
-    "#......................#",
-    "#......................#",
-    "#......................#",
-    "#......................#",
-    "#......................#",
-    "#......................#",
-    "#......................#",
-    "#......................#",
-    "#......................#",
-    "#.P.............^....D.#",
-    "##########XXX###########",
-    "##########^^^###########",
-]
-mapa2 = [
-    "########################",
-    "#......................#",
-    "#......................#",
-    "#......................#",
-    "#.......F..............#",
-    "#......................#",
-    "#......................#",
-    "#......................#",
-    "#......................#",
-    "#......................#",
-    "#......................#",
-    "#.P.........H.....^..D.#",
-    "########################",
-    "########################",
-]
-mapa3 = [
-    "########################",
-    "#......................#",
-    "#......................#",
-    "#......................#",
-    "#......................#",
-    "#......................#",
-    "#......................#",
-    "#......................#",
-    "#......................#",
-    "#......................#",
-    "#......................#",
-    "#.P................D.E.#",
-    "#######..I..I..I.#######",
-    "#######^^^^^^^^^^#######",
-]
-mapa4 = [
-    "########################",
-    "#......................#",
-    "#......................#",
-    "#......................#",
-    "#......................#",
-    "#......................#",
-    "#......................#",
-    "#......................#",
-    "#......................#",
-    "#......................#",
-    "#......................#",
-    "#.P...C..^...^...T..D.d#",
-    "########################",
-    "########################",
-]
-mapas = [mapa1, mapa2, mapa3, mapa4]
-class quadrado:
-    def __init__(self, nome, x, y):
-        self.nome = nome
-        self.x = x
-        self.y = y  # faltava esta linha na versão antiga
-        self.velocidade_y = 0
-        self.no_chao = False  # o loop avisa quando tem bloco embaixo
-    def mover(self, deslocamento_x, deslocamento_y):
-        self.x += deslocamento_x
-        self.y += deslocamento_y
-    def pular(self):
-        if self.no_chao:  # só pula se estiver em cima de um bloco
-            self.velocidade_y = -FORCA_PULO
-def desenhar_bloco(rect):
-    pygame.draw.rect(tela, PRETO, rect)
-    pygame.draw.rect(tela, CINZA, (rect.x, rect.y, rect.width, 4))
-def desenhar_porta(rect):
-    moldura = (rect.x - 3, rect.y - 3, rect.width + 6, rect.height + 6)
-    pygame.draw.rect(tela, VERDE_ESCURO, moldura)
-    pygame.draw.rect(tela, VERDE, rect)
-    pygame.draw.circle(tela, VERDE_ESCURO, (rect.right - 5, rect.centery), 2)
-def desenhar_espinho(rect):
-    pygame.draw.polygon(tela, VERMELHO, [rect.bottomleft, rect.midtop, rect.bottomright])
-def escrever(texto, qual_fonte, y, cor):
-    imagem = qual_fonte.render(texto, True, cor)
-    x = (LARGURA - imagem.get_width()) // 2
-    tela.blit(imagem, (x, y))
-pasta = os.path.dirname(os.path.abspath(__file__))
-tem_som = False
-if os.path.exists(pasta + "/sons") and pygame.mixer.get_init():
-    tem_som = True
-    som_pulo = pygame.mixer.Sound(pasta + "/sons/pulo.wav")
-    som_morte = pygame.mixer.Sound(pasta + "/sons/morte.wav")
-    som_porta = pygame.mixer.Sound(pasta + "/sons/porta.wav")
-    som_pulo.set_volume(0.4)
-    som_morte.set_volume(0.5)
-    som_porta.set_volume(0.5)
-    pygame.mixer.music.load(pasta + "/sons/musica.wav")
-    pygame.mixer.music.set_volume(0.4)
-    pygame.mixer.music.play(-1)
+# variáveis do jogo
 estado = "menu"
 comecar_fase = False
 zerou = False
+nome = ""
+ranking = []
 rodando = True
+# loop principal: lê as teclas, monta a fase, mexe tudo e desenha
 while rodando:
     relogio.tick(60)
+    # 1) teclas
     for evento in pygame.event.get():
         if evento.type == pygame.QUIT:
             rodando = False
         if evento.type == pygame.KEYDOWN:
-            if evento.key == pygame.K_ESCAPE:  # ESC fecha o jogo
+            if evento.key == pygame.K_ESCAPE:
                 rodando = False
+            # no menu: ENTER começa e as letras formam o nome
             if estado == "menu":
                 if evento.key == pygame.K_RETURN:
                     fase = 0
@@ -456,11 +169,17 @@ while rodando:
                     comecar_fase = True
                     mortes = 0
                     quadros = 0
+                elif evento.key == pygame.K_BACKSPACE:
+                    nome = nome[:-1]
+                elif evento.unicode.isalpha() and len(nome) < 3:
+                    nome = nome + evento.unicode.upper()
+            # na fase: espaço, W ou seta para cima pula
             elif estado == "jogando":
                 if evento.key == pygame.K_SPACE or evento.key == pygame.K_w or evento.key == pygame.K_UP:
                     if posicao_quadrado.no_chao and tem_som:
                         som_pulo.play()
                     posicao_quadrado.pular()
+    # 2) monta a fase a partir do mapa
     if comecar_fase:
         comecar_fase = False
         blocos = []
@@ -478,12 +197,13 @@ while rodando:
         porta_foge = False
         porta_fugindo = False
         mapa = mapas[fase]
+        # cada letra do mapa vira uma coisa na tela
         for linha in range(len(mapa)):
             for coluna in range(len(mapa[linha])):
                 letra = mapa[linha][coluna]
                 x = coluna * TAM
                 y = linha * TAM
-                if letra == "#" or letra == "X" or letra == "I":  # X e I: bloco normal por enquanto
+                if letra == "#" or letra == "X" or letra == "I":
                     blocos.append(pygame.Rect(x, y, TAM, TAM))
                     if letra == "X":
                         falsos.append(pygame.Rect(x, y, TAM, TAM))
@@ -494,7 +214,7 @@ while rodando:
                 elif letra == "D":
                     porta = pygame.Rect(x + 8, y, 24, TAM)
                 elif letra == "P":
-                    posicao_quadrado = quadrado("preto", x, y)  # nasce onde está o P
+                    posicao_quadrado = quadrado("preto", x, y)
                     inicio_x = x
                     inicio_y = y
                 elif letra == "F":
@@ -510,8 +230,10 @@ while rodando:
                 elif letra == "d":
                     porta_foge = True
                     destino_x = x + 8
+    # 3) mexe tudo
     if estado == "jogando":
         quadros += 1
+        # anda para os lados e confere as paredes
         teclas = pygame.key.get_pressed()
         velocidade_x = 0
         if teclas[pygame.K_d] or teclas[pygame.K_RIGHT]:
@@ -520,39 +242,44 @@ while rodando:
             velocidade_x = -VELOCIDADE
         if invertido:
             velocidade_x = -velocidade_x
-        posicao_quadrado.mover(velocidade_x, 0)  # primeiro anda para os lados
+        posicao_quadrado.mover(velocidade_x, 0)
         caixa = pygame.Rect(posicao_quadrado.x, posicao_quadrado.y, TAM, TAM)
         for bloco in blocos:
             if caixa.colliderect(bloco):
                 if velocidade_x > 0:
-                    posicao_quadrado.x = bloco.left - TAM  # bateu na parede da direita
+                    posicao_quadrado.x = bloco.left - TAM
                 if velocidade_x < 0:
-                    posicao_quadrado.x = bloco.right  # bateu na parede da esquerda
+                    posicao_quadrado.x = bloco.right
                 caixa.x = posicao_quadrado.x
-        posicao_quadrado.velocidade_y += GRAVIDADE  # a gravidade puxa para baixo
-        posicao_quadrado.mover(0, int(posicao_quadrado.velocidade_y))  # depois sobe ou desce
+        # gravidade: sobe ou desce e confere o chão e o teto
+        posicao_quadrado.velocidade_y += GRAVIDADE
+        posicao_quadrado.mover(0, int(posicao_quadrado.velocidade_y))
         caixa.y = posicao_quadrado.y
         for bloco in blocos:
             if caixa.colliderect(bloco):
                 if posicao_quadrado.velocidade_y > 0:
-                    posicao_quadrado.y = bloco.top - TAM  # caiu em cima do bloco
+                    posicao_quadrado.y = bloco.top - TAM
                 else:
-                    posicao_quadrado.y = bloco.bottom  # bateu a cabeça no bloco
+                    posicao_quadrado.y = bloco.bottom
                 posicao_quadrado.velocidade_y = 0
                 caixa.y = posicao_quadrado.y
-        pes = caixa.move(0, 1)  # cópia do quadrado 1 pixel abaixo
+        # descobre se o quadrado está no chão
+        pes = caixa.move(0, 1)
         posicao_quadrado.no_chao = False
         for bloco in blocos:
-            if pes.colliderect(bloco):  # tem bloco embaixo dos pés
+            if pes.colliderect(bloco):
                 posicao_quadrado.no_chao = True
+        # chão falso: some quando o quadrado pisa
         for falso in falsos:
             gatilho = pygame.Rect(falso.x, falso.y - 2, TAM, 2)
             if caixa.colliderect(gatilho) and falso in blocos:
                 blocos.remove(falso)
+        # bloco invisível: aparece quando o quadrado encosta
         for invisivel in invisiveis:
             gatilho = pygame.Rect(invisivel.x - 1, invisivel.y - 1, TAM + 2, TAM + 2)
             if caixa.colliderect(gatilho) and invisivel not in revelados:
                 revelados.append(invisivel)
+        # bloco que cai quando o quadrado passa embaixo
         for cai in caem:
             gatilho = pygame.Rect(cai.x - TAM, cai.bottom, 3 * TAM, ALTURA)
             if caixa.colliderect(gatilho) and cai not in caindo:
@@ -562,14 +289,17 @@ while rodando:
                 cai.y += 8
             if caixa.colliderect(cai):
                 comecar_fase = True
+        # espinho escondido: aparece quando o quadrado chega perto
         for escondido in escondidos:
             gatilho = pygame.Rect(escondido.x - 2 * TAM, escondido.y, 5 * TAM, TAM)
             espinho_novo = pygame.Rect(escondido.x, escondido.y + 20, TAM, 20)
             if caixa.colliderect(gatilho) and espinho_novo not in espinhos:
                 espinhos.append(espinho_novo)
+        # porta falsa: mata
         for porta_falsa in portas_falsas:
             if caixa.colliderect(porta_falsa):
                 comecar_fase = True
+        # teleporte: volta para o começo da fase
         for teleporte in teleportes:
             if caixa.colliderect(teleporte):
                 posicao_quadrado.x = inicio_x
@@ -577,9 +307,11 @@ while rodando:
                 posicao_quadrado.velocidade_y = 0
                 caixa.x = inicio_x
                 caixa.y = inicio_y
+        # inversor: troca esquerda e direita
         for inversor in inversores:
             if caixa.colliderect(inversor):
                 invertido = True
+        # porta que foge até o lugar da letra d
         if porta_foge:
             if porta.x - posicao_quadrado.x < 100:
                 porta_fugindo = True
@@ -587,25 +319,36 @@ while rodando:
                 porta.x += 6
                 if porta.x > destino_x:
                     porta.x = destino_x
+        # morreu? (espinho ou queda para fora da tela)
         for espinho in espinhos:
-            if caixa.colliderect(espinho):  # morreu: recomeça a fase
+            if caixa.colliderect(espinho):
                 comecar_fase = True
-        if posicao_quadrado.y > ALTURA:  # caiu para fora da tela: recomeça a fase
+        if posicao_quadrado.y > ALTURA:
             comecar_fase = True
+        # conta a morte e toca o som
         if comecar_fase:
             mortes += 1
         if comecar_fase and tem_som:
             som_morte.play()
-        if caixa.colliderect(porta):  # chegou na porta: próxima fase
+        # chegou na porta: próxima fase ou fim do jogo
+        if caixa.colliderect(porta):
             if tem_som:
                 som_porta.play()
             fase += 1
             if fase < len(mapas):
                 comecar_fase = True
             else:
-                estado = "menu"  # acabaram as fases: volta para o menu
+                estado = "menu"
                 zerou = True
                 tempo = round(quadros / 60, 1)
+                # guarda a partida no ranking: menos mortes primeiro e, no empate, menos tempo
+                if nome == "":
+                    nome = "???"
+                ranking.append([mortes, tempo, nome])
+                ranking.sort()
+                ranking = ranking[:5]
+                nome = ""
+    # 4) desenha o menu ou a fase
     if estado == "menu":
         tela.fill(PRETO)
         escrever("FASE MALDITA", fonte_grande, 60, LARANJA)
@@ -613,6 +356,15 @@ while rodando:
         escrever("Aperte ENTER para começar", fonte, 260, LARANJA)
         if zerou:
             escrever(f"VOCÊ ZEROU!   Mortes: {mortes}   Tempo: {tempo}s", fonte, 205, VERDE)
+        escrever("Seu nome (3 letras): " + nome + "_", fonte, 305, BRANCO)
+        escrever("MELHORES PARTIDAS", fonte, 350, LARANJA)
+        if len(ranking) == 0:
+            escrever("Ninguém zerou ainda.", fonte, 390, BRANCO)
+        # as 3 melhores partidas
+        posicao = 1
+        for partida in ranking[:3]:
+            escrever(f"{posicao}. {partida[2]}   {partida[0]} mortes   {partida[1]}s", fonte, 350 + posicao * 40, BRANCO)
+            posicao += 1
     elif estado == "jogando":
         tela.fill(LARANJA)
         for bloco in blocos:
@@ -620,6 +372,7 @@ while rodando:
         for espinho in espinhos:
             desenhar_espinho(espinho)
         desenhar_porta(porta)
+        # esconde os blocos invisíveis; de perto aparece o contorno
         for invisivel in invisiveis:
             if invisivel not in revelados:
                 pygame.draw.rect(tela, LARANJA, invisivel)
@@ -630,8 +383,10 @@ while rodando:
         for porta_falsa in portas_falsas:
             desenhar_porta(porta_falsa)
         pygame.draw.rect(tela, PRETO, (posicao_quadrado.x, posicao_quadrado.y, TAM, TAM))
+        # aviso de lados trocados
         if invertido:
             pygame.draw.rect(tela, VERMELHO, (posicao_quadrado.x + 10, posicao_quadrado.y + 10, 20, 20))
+        # placar
         pygame.draw.rect(tela, PRETO, (0, 0, LARGURA, 40))
         placar = f"Fase {fase + 1}/{len(mapas)}   Mortes: {mortes}   Tempo: {quadros // 60}s"
         tela.blit(fonte.render(placar, True, BRANCO), (16, 8))

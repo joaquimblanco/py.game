@@ -13,6 +13,8 @@ A pasta `sons` tem de ficar junto do arquivo `base_do_jogo.py`.
 Um jogo simples de plataforma 2d feito no py.game estilo level devil onde o objetivo e concluir em menos tempo e se irritar com o jogo 
 ###link vídeo 
 https://drive.google.com/file/d/1eWhwBgrXZ93zweoTjjjBDZCSEfGFZuSe/view?usp=sharing
+### ia 
+https://claude.ai/share/f4f5293f-0431-4937-95da-d1ec9a26f4c4
 
 
 

@@ -1,7 +1,6 @@
 """Fase Maldita: jogo de plataforma com armadilhas, feito com PyGame.
 Para rodar: python base_do_jogo.py
 A pasta "sons" tem de ficar junto deste arquivo.
-Parte deste código foi gerada com IA generativa: a explicação está no README.
 """
 import os
 import pygame

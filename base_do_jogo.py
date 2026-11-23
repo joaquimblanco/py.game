@@ -1,3 +1,4 @@
+import os
 import pygame
 pygame.init()
 LARGURA = 960
@@ -110,6 +111,19 @@ def escrever(texto, qual_fonte, y, cor):
     imagem = qual_fonte.render(texto, True, cor)
     x = (LARGURA - imagem.get_width()) // 2
     tela.blit(imagem, (x, y))
+pasta = os.path.dirname(os.path.abspath(__file__))
+tem_som = False
+if os.path.exists(pasta + "/sons") and pygame.mixer.get_init():
+    tem_som = True
+    som_pulo = pygame.mixer.Sound(pasta + "/sons/pulo.wav")
+    som_morte = pygame.mixer.Sound(pasta + "/sons/morte.wav")
+    som_porta = pygame.mixer.Sound(pasta + "/sons/porta.wav")
+    som_pulo.set_volume(0.4)
+    som_morte.set_volume(0.5)
+    som_porta.set_volume(0.5)
+    pygame.mixer.music.load(pasta + "/sons/musica.wav")
+    pygame.mixer.music.set_volume(0.4)
+    pygame.mixer.music.play(-1)
 estado = "menu"
 comecar_fase = False
 rodando = True
@@ -128,6 +142,8 @@ while rodando:
                     comecar_fase = True
             elif estado == "jogando":
                 if evento.key == pygame.K_SPACE or evento.key == pygame.K_w or evento.key == pygame.K_UP:
+                    if posicao_quadrado.no_chao and tem_som:
+                        som_pulo.play()
                     posicao_quadrado.pular()
     if comecar_fase:
         comecar_fase = False
@@ -184,7 +200,11 @@ while rodando:
                 comecar_fase = True
         if posicao_quadrado.y > ALTURA:  # caiu para fora da tela: recomeça a fase
             comecar_fase = True
+        if comecar_fase and tem_som:
+            som_morte.play()
         if caixa.colliderect(porta):  # chegou na porta: próxima fase
+            if tem_som:
+                som_porta.play()
             fase += 1
             if fase < len(mapas):
                 comecar_fase = True

@@ -85,7 +85,7 @@ mapa4 = [
 ]
 mapas = [mapa1, mapa2, mapa3, mapa4]
 class quadrado:
-    def _init_(self, nome, x, y):
+    def __init__(self, nome, x, y):
         self.nome = nome
         self.x = x
         self.y = y
@@ -111,7 +111,7 @@ def escrever(texto, qual_fonte, y, cor):
     imagem = qual_fonte.render(texto, True, cor)
     x = (LARGURA - imagem.get_width()) // 2
     tela.blit(imagem, (x, y))
-pasta = os.path.dirname(os.path.abspath(_file_))
+pasta = os.path.dirname(os.path.abspath(__file__))
 tem_som = False
 if os.path.exists(pasta + "/sons") and pygame.mixer.get_init():
     tem_som = True

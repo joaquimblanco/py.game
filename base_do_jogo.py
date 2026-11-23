@@ -149,6 +149,18 @@ while rodando:
         comecar_fase = False
         blocos = []
         espinhos = []
+        falsos = []
+        invisiveis = []
+        revelados = []
+        caem = []
+        caindo = []
+        escondidos = []
+        portas_falsas = []
+        teleportes = []
+        inversores = []
+        invertido = False
+        porta_foge = False
+        porta_fugindo = False
         mapa = mapas[fase]
         for linha in range(len(mapa)):
             for coluna in range(len(mapa[linha])):
@@ -157,12 +169,31 @@ while rodando:
                 y = linha * TAM
                 if letra == "#" or letra == "X" or letra == "I":  # X e I: bloco normal por enquanto
                     blocos.append(pygame.Rect(x, y, TAM, TAM))
+                    if letra == "X":
+                        falsos.append(pygame.Rect(x, y, TAM, TAM))
+                    if letra == "I":
+                        invisiveis.append(pygame.Rect(x, y, TAM, TAM))
                 elif letra == "^":
                     espinhos.append(pygame.Rect(x, y + 20, TAM, 20))
                 elif letra == "D":
                     porta = pygame.Rect(x + 8, y, 24, TAM)
                 elif letra == "P":
                     posicao_quadrado = quadrado("preto", x, y)  # nasce onde está o P
+                    inicio_x = x
+                    inicio_y = y
+                elif letra == "F":
+                    caem.append(pygame.Rect(x, y, TAM, TAM))
+                elif letra == "H":
+                    escondidos.append(pygame.Rect(x, y, TAM, TAM))
+                elif letra == "E":
+                    portas_falsas.append(pygame.Rect(x + 8, y, 24, TAM))
+                elif letra == "T":
+                    teleportes.append(pygame.Rect(x, y + 20, TAM, 20))
+                elif letra == "C":
+                    inversores.append(pygame.Rect(x, y + 20, TAM, 20))
+                elif letra == "d":
+                    porta_foge = True
+                    destino_x = x + 8
     if estado == "jogando":
         teclas = pygame.key.get_pressed()
         velocidade_x = 0
@@ -170,6 +201,8 @@ while rodando:
             velocidade_x = VELOCIDADE
         if teclas[pygame.K_a] or teclas[pygame.K_LEFT]:
             velocidade_x = -VELOCIDADE
+        if invertido:
+            velocidade_x = -velocidade_x
         posicao_quadrado.mover(velocidade_x, 0)  # primeiro anda para os lados
         caixa = pygame.Rect(posicao_quadrado.x, posicao_quadrado.y, TAM, TAM)
         for bloco in blocos:
@@ -195,6 +228,48 @@ while rodando:
         for bloco in blocos:
             if pes.colliderect(bloco):  # tem bloco embaixo dos pés
                 posicao_quadrado.no_chao = True
+        for falso in falsos:
+            gatilho = pygame.Rect(falso.x, falso.y - 2, TAM, 2)
+            if caixa.colliderect(gatilho) and falso in blocos:
+                blocos.remove(falso)
+        for invisivel in invisiveis:
+            gatilho = pygame.Rect(invisivel.x - 1, invisivel.y - 1, TAM + 2, TAM + 2)
+            if caixa.colliderect(gatilho) and invisivel not in revelados:
+                revelados.append(invisivel)
+        for cai in caem:
+            gatilho = pygame.Rect(cai.x - TAM, cai.bottom, 3 * TAM, ALTURA)
+            if caixa.colliderect(gatilho) and cai not in caindo:
+                caindo.append(cai)
+        for cai in caindo:
+            if cai.y < ALTURA:
+                cai.y += 8
+            if caixa.colliderect(cai):
+                comecar_fase = True
+        for escondido in escondidos:
+            gatilho = pygame.Rect(escondido.x - 2 * TAM, escondido.y, 5 * TAM, TAM)
+            espinho_novo = pygame.Rect(escondido.x, escondido.y + 20, TAM, 20)
+            if caixa.colliderect(gatilho) and espinho_novo not in espinhos:
+                espinhos.append(espinho_novo)
+        for porta_falsa in portas_falsas:
+            if caixa.colliderect(porta_falsa):
+                comecar_fase = True
+        for teleporte in teleportes:
+            if caixa.colliderect(teleporte):
+                posicao_quadrado.x = inicio_x
+                posicao_quadrado.y = inicio_y
+                posicao_quadrado.velocidade_y = 0
+                caixa.x = inicio_x
+                caixa.y = inicio_y
+        for inversor in inversores:
+            if caixa.colliderect(inversor):
+                invertido = True
+        if porta_foge:
+            if porta.x - posicao_quadrado.x < 100:
+                porta_fugindo = True
+            if porta_fugindo and porta.x < destino_x:
+                porta.x += 6
+                if porta.x > destino_x:
+                    porta.x = destino_x
         for espinho in espinhos:
             if caixa.colliderect(espinho):  # morreu: recomeça a fase
                 comecar_fase = True
@@ -222,6 +297,17 @@ while rodando:
         for espinho in espinhos:
             desenhar_espinho(espinho)
         desenhar_porta(porta)
+        for invisivel in invisiveis:
+            if invisivel not in revelados:
+                pygame.draw.rect(tela, LARANJA, invisivel)
+                if abs(posicao_quadrado.x - invisivel.x) < 68 and abs(posicao_quadrado.y - invisivel.y) < 96:
+                    pygame.draw.rect(tela, BRANCO, (invisivel.x + 2, invisivel.y + 2, TAM - 4, TAM - 4), 2)
+        for cai in caem:
+            desenhar_bloco(cai)
+        for porta_falsa in portas_falsas:
+            desenhar_porta(porta_falsa)
         pygame.draw.rect(tela, PRETO, (posicao_quadrado.x, posicao_quadrado.y, TAM, TAM))
+        if invertido:
+            pygame.draw.rect(tela, VERMELHO, (posicao_quadrado.x + 10, posicao_quadrado.y + 10, 20, 20))
     pygame.display.flip()
 pygame.quit()

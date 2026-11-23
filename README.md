@@ -26,10 +26,10 @@ A pasta `sons` tem de ficar junto do arquivo `base_do_jogo.py`.
 
 ## Vídeo do jogo funcionando
 
-COLE AQUI O LINK DO VÍDEO
+https://drive.google.com/file/d/1eWhwBgrXZ93zweoTjjjBDZCSEfGFZuSe/view?usp=sharing
 
 ## Uso de IA generativa
 
 Usamos IA generativa (Claude, da Anthropic) no desenvolvimento do jogo. A maior parte do código do arquivo `base_do_jogo.py` foi gerada pela IA a partir dos nossos pedidos: os mapas e a montagem das fases, o movimento e as colisões, os sons, as armadilhas, o placar e o ranking. A classe `quadrado` veio do nosso código inicial e foi adaptada. Nós juntamos as partes, testamos o jogo, corrigimos erros e ajustamos os valores da gravidade e da velocidade.
 
-O histórico da conversa com a IA está em: COLE AQUI O LINK DO HISTÓRICO
+O histórico da conversa com a IA foi exportado e está com o grupo, à disposição do professor.
